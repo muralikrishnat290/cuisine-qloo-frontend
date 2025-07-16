@@ -207,10 +207,8 @@ class AuthenticationManager:
             if 'username' in st.session_state:
                 del st.session_state['username']
                 
-            # Display logout success message
-            st.success('You have been logged out successfully')
+            # Don't display success message to avoid interfering with redirect
             
         except Exception as e:
-            st.error(f'An error occurred during logout: {str(e)}')
             # Force clear session state even if logout method fails
             st.session_state.clear()

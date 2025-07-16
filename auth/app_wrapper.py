@@ -77,9 +77,18 @@ class AppWrapper:
                 st.markdown("---")
                 
                 if st.button("🚪 Logout", type="secondary", use_container_width=True):
-                    self.auth_manager.handle_logout()
-                    # Force clear session state to ensure logout
-                    st.session_state.clear()
+                    # Manually clear all authentication-related session state
+                    for key in ['authentication_status', 'name', 'username']:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    
+                    # Set authentication status to False explicitly
+                    st.session_state['authentication_status'] = False
+                    
+                    # Set force logout flag
+                    st.session_state['force_logout'] = True
+                    
+                    # Force rerun to redirect to login
                     st.rerun()
             
             # Render the main authenticated application
@@ -104,6 +113,14 @@ class AppWrapper:
         try:
             # Initialize authentication manager
             self.auth_manager.load_config()
+            
+            # Check for explicit logout flag
+            if st.session_state.get('force_logout', False):
+                # Clear the logout flag
+                st.session_state['force_logout'] = False
+                # Force show login screen
+                self.render_login_screen()
+                return
             
             # Check if user is authenticated
             if self.auth_manager.is_authenticated():
