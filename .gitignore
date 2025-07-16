@@ -209,3 +209,4 @@ __marimo__/
 # Authentication credentials
 credentials.yaml
 .env
+test_hash.py
