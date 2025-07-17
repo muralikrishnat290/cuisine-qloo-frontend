@@ -54,6 +54,14 @@ class AuthenticationManager:
             }
             
             for username, user_cred in user_credentials.items():
+                # Validate that all required fields are present and not None
+                if not user_cred.name:
+                    raise ConfigurationError(f"Missing or empty name for user '{username}'")
+                if not user_cred.email:
+                    raise ConfigurationError(f"Missing or empty email for user '{username}'")
+                if not user_cred.hashed_password:
+                    raise ConfigurationError(f"Missing or empty password for user '{username}'")
+                
                 credentials['usernames'][username] = {
                     'name': user_cred.name,
                     'email': user_cred.email,
@@ -67,9 +75,17 @@ class AuthenticationManager:
                 cookie_key = cookie_config.key
                 cookie_expiry = cookie_config.expiry_days
             except:
-                # No cookie config - use session-only authentication
-                cookie_name = None
-                cookie_key = None
+                # No cookie config - use session-only authentication with default values
+                cookie_name = "streamlit_auth_cookie"
+                cookie_key = "default_key_no_persistence"
+                cookie_expiry = 0
+            
+            # Validate cookie parameters
+            if not cookie_name:
+                cookie_name = "streamlit_auth_cookie"
+            if not cookie_key:
+                cookie_key = "default_key_no_persistence"
+            if cookie_expiry is None:
                 cookie_expiry = 0
             
             # Initialize the authenticator
