@@ -60,8 +60,11 @@ class ConfigManager:
         """Load configuration from environment variables or YAML file.
         
         Environment variables take precedence over YAML file.
-        Expected env vars:
-        - AUTH_USERS: JSON string with user credentials
+        Expected env vars for single user:
+        - AUTH_USERNAME: Username for login
+        - AUTH_NAME: Display name
+        - AUTH_EMAIL: User email
+        - AUTH_PASSWORD: Bcrypt hashed password
         - AUTH_COOKIE_NAME: Cookie name (optional)
         - AUTH_COOKIE_KEY: Cookie key (optional)  
         - AUTH_COOKIE_EXPIRY: Cookie expiry days (optional)
@@ -96,29 +99,112 @@ class ConfigManager:
             raise ConfigurationError(f"Error loading configuration: {str(e)}")
     
     def _load_from_env(self) -> Optional[Dict[str, Any]]:
-        """Load configuration from environment variables.
+        """Load configuration from Streamlit secrets or environment variables.
+        
+        Follows Streamlit secrets management standard:
+        https://docs.streamlit.io/develop/concepts/connections/secrets-management
+        
+        Priority order:
+        1. Streamlit secrets (.streamlit/secrets.toml)
+        2. Environment variables
+        
+        Expected secrets format in .streamlit/secrets.toml:
+        [auth]
+        username = "admin"
+        name = "Administrator"
+        email = "admin@example.com"
+        password = "$2b$12$hashed_password"
+        
+        # Optional cookie settings
+        cookie_name = "app_auth_cookie"
+        cookie_key = "secret_key"
+        cookie_expiry = 1
+        
+        Fallback environment variables:
+        - AUTH_USERNAME, AUTH_NAME, AUTH_EMAIL, AUTH_PASSWORD
         
         Returns:
             Dict containing the configuration or None if not available.
         """
-        import json
+        import streamlit as st
         
-        # Check if AUTH_USERS environment variable exists
-        auth_users_env = os.getenv('AUTH_USERS')
-        if not auth_users_env:
+        # Try Streamlit secrets first (recommended approach)
+        try:
+            # Check if auth section exists in secrets
+            if "auth" in st.secrets:
+                auth_secrets = st.secrets["auth"]
+                
+                # Get required auth fields
+                auth_username = auth_secrets.get("username")
+                auth_name = auth_secrets.get("name")
+                auth_email = auth_secrets.get("email")
+                auth_password = auth_secrets.get("password")
+                
+                # All required secrets must be present
+                if not all([auth_username, auth_name, auth_email, auth_password]):
+                    # Some required secrets missing, fall back to env vars
+                    pass
+                else:
+                    # All required secrets are available
+                    config = {
+                        'credentials': {
+                            'usernames': {
+                                auth_username: {
+                                    'name': auth_name,
+                                    'email': auth_email,
+                                    'password': auth_password
+                                }
+                            }
+                        }
+                    }
+                    
+                    # Add optional cookie configuration from secrets
+                    cookie_name = auth_secrets.get("cookie_name")
+                    cookie_key = auth_secrets.get("cookie_key")
+                    cookie_expiry = auth_secrets.get("cookie_expiry")
+                    
+                    if cookie_name and cookie_key and cookie_expiry:
+                        try:
+                            config['cookie'] = {
+                                'name': cookie_name,
+                                'key': cookie_key,
+                                'expiry_days': int(cookie_expiry)
+                            }
+                        except ValueError:
+                            # Invalid cookie_expiry, skip cookie config
+                            pass
+                    
+                    return config
+            
+        except Exception:
+            # Error accessing secrets, fall back to environment variables
+            pass
+        
+        # Fallback to environment variables
+        auth_username = os.getenv('AUTH_USERNAME')
+        auth_name = os.getenv('AUTH_NAME')
+        auth_email = os.getenv('AUTH_EMAIL')
+        auth_password = os.getenv('AUTH_PASSWORD')
+        
+        # If any required variable is missing, return None
+        if not all([auth_username, auth_name, auth_email, auth_password]):
             return None
         
         try:
-            # Parse users from JSON
-            users_data = json.loads(auth_users_env)
-            
+            # Create single user configuration from env vars
             config = {
                 'credentials': {
-                    'usernames': users_data
+                    'usernames': {
+                        auth_username: {
+                            'name': auth_name,
+                            'email': auth_email,
+                            'password': auth_password
+                        }
+                    }
                 }
             }
             
-            # Add cookie configuration if provided
+            # Add optional cookie configuration from env vars
             cookie_name = os.getenv('AUTH_COOKIE_NAME')
             cookie_key = os.getenv('AUTH_COOKIE_KEY')
             cookie_expiry = os.getenv('AUTH_COOKIE_EXPIRY')
@@ -132,8 +218,6 @@ class ConfigManager:
             
             return config
             
-        except json.JSONDecodeError as e:
-            raise ConfigurationError(f"Invalid JSON in AUTH_USERS environment variable: {str(e)}")
         except ValueError as e:
             raise ConfigurationError(f"Invalid AUTH_COOKIE_EXPIRY value: {str(e)}")
         except Exception as e:
