@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.13-slim
 
 # Set working directory
 WORKDIR /app
@@ -10,6 +10,8 @@ ENV PORT=8080
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN pip install streamlit>=1.28.0 requests>=2.31.0 python-dotenv>=1.0.0 streamlit-authenticator>=0.2.3 PyYAML>=6.0 bcrypt>=4.0.1
+
 # Copy application code
 COPY . .
 
@@ -19,9 +21,6 @@ RUN mkdir -p .streamlit
 # Expose the port
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8080/_stcore/health || exit 1
-
-# Run the application
-CMD ["streamlit", "run", "main.py", "--server.address", "0.0.0.0", "--server.port", $PORT, "--server.headless", "true", "--server.fileWatcherType", "none", "--server.enableCORS", "false", "--server.enableXsrfProtection", "false"]
+# Make startup script executable and run it
+RUN chmod +x start.sh
+CMD ["./start.sh"]
