@@ -57,14 +57,29 @@ class ConfigManager:
         self.config = None
     
     def load_config(self) -> Dict[str, Any]:
-        """Load configuration from YAML file.
+        """Load configuration from environment variables or YAML file.
+        
+        Environment variables take precedence over YAML file.
+        Expected env vars:
+        - AUTH_USERS: JSON string with user credentials
+        - AUTH_COOKIE_NAME: Cookie name (optional)
+        - AUTH_COOKIE_KEY: Cookie key (optional)  
+        - AUTH_COOKIE_EXPIRY: Cookie expiry days (optional)
         
         Returns:
             Dict containing the configuration.
             
         Raises:
-            ConfigurationError: If the configuration file is missing or invalid.
+            ConfigurationError: If the configuration is missing or invalid.
         """
+        # Try to load from environment variables first
+        config = self._load_from_env()
+        if config:
+            self._validate_config(config)
+            self.config = config
+            return config
+        
+        # Fall back to YAML file
         try:
             if not os.path.exists(self.config_path):
                 raise ConfigurationError(f"Configuration file not found: {self.config_path}")
@@ -79,6 +94,50 @@ class ConfigManager:
             raise ConfigurationError(f"Invalid YAML format in {self.config_path}: {str(e)}")
         except Exception as e:
             raise ConfigurationError(f"Error loading configuration: {str(e)}")
+    
+    def _load_from_env(self) -> Optional[Dict[str, Any]]:
+        """Load configuration from environment variables.
+        
+        Returns:
+            Dict containing the configuration or None if not available.
+        """
+        import json
+        
+        # Check if AUTH_USERS environment variable exists
+        auth_users_env = os.getenv('AUTH_USERS')
+        if not auth_users_env:
+            return None
+        
+        try:
+            # Parse users from JSON
+            users_data = json.loads(auth_users_env)
+            
+            config = {
+                'credentials': {
+                    'usernames': users_data
+                }
+            }
+            
+            # Add cookie configuration if provided
+            cookie_name = os.getenv('AUTH_COOKIE_NAME')
+            cookie_key = os.getenv('AUTH_COOKIE_KEY')
+            cookie_expiry = os.getenv('AUTH_COOKIE_EXPIRY')
+            
+            if cookie_name and cookie_key and cookie_expiry:
+                config['cookie'] = {
+                    'name': cookie_name,
+                    'key': cookie_key,
+                    'expiry_days': int(cookie_expiry)
+                }
+            
+            return config
+            
+        except json.JSONDecodeError as e:
+            raise ConfigurationError(f"Invalid JSON in AUTH_USERS environment variable: {str(e)}")
+        except ValueError as e:
+            raise ConfigurationError(f"Invalid AUTH_COOKIE_EXPIRY value: {str(e)}")
+        except Exception as e:
+            raise ConfigurationError(f"Error loading configuration from environment: {str(e)}")
     
     def _validate_config(self, config: Dict[str, Any]) -> None:
         """Validate the configuration structure.
@@ -97,16 +156,14 @@ class ConfigManager:
         if 'usernames' not in config['credentials']:
             raise ConfigurationError("Missing 'usernames' section in credentials configuration")
         
-        # Check if cookie section exists
-        if 'cookie' not in config:
-            raise ConfigurationError("Missing 'cookie' section in configuration")
-        
-        # Validate cookie configuration
-        cookie_config = config['cookie']
-        required_cookie_fields = ['expiry_days', 'key', 'name']
-        for field in required_cookie_fields:
-            if field not in cookie_config:
-                raise ConfigurationError(f"Missing required field '{field}' in cookie configuration")
+        # Check if cookie section exists (optional)
+        if 'cookie' in config:
+            # Validate cookie configuration if present
+            cookie_config = config['cookie']
+            required_cookie_fields = ['expiry_days', 'key', 'name']
+            for field in required_cookie_fields:
+                if field not in cookie_config:
+                    raise ConfigurationError(f"Missing required field '{field}' in cookie configuration")
         
         # Validate user credentials
         usernames = config['credentials']['usernames']
@@ -151,10 +208,13 @@ class ConfigManager:
             CookieConfig object.
             
         Raises:
-            ConfigurationError: If the configuration is not loaded.
+            ConfigurationError: If the configuration is not loaded or no cookie config exists.
         """
         if self.config is None:
             raise ConfigurationError("Configuration not loaded. Call load_config() first.")
+        
+        if 'cookie' not in self.config:
+            raise ConfigurationError("No cookie configuration found.")
         
         cookie_data = self.config['cookie']
         return CookieConfig(
