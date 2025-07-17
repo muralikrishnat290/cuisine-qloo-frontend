@@ -210,3 +210,4 @@ __marimo__/
 credentials.yaml
 .env
 ./test_hash.py
+ENV_AUTH_README.md
