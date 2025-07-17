@@ -1,12 +1,11 @@
 """
 Configuration manager for authentication.
 
-This module handles loading and validating YAML configuration for authentication.
+This module handles loading and validating environment variable configuration for authentication.
 """
 import os
 from dataclasses import dataclass
 from typing import Dict, Optional, Any
-import yaml
 
 
 @dataclass
@@ -47,140 +46,59 @@ class ConfigurationError(Exception):
 class ConfigManager:
     """Manager for authentication configuration."""
     
-    def __init__(self, config_path: str = "credentials.yaml"):
-        """Initialize the configuration manager.
-        
-        Args:
-            config_path: Path to the YAML configuration file.
-        """
-        self.config_path = config_path
+    def __init__(self):
+        """Initialize the configuration manager."""
         self.config = None
     
     def load_config(self) -> Dict[str, Any]:
-        """Load configuration from environment variables or YAML file.
+        """Load configuration from environment variables only.
         
-        Environment variables take precedence over YAML file.
-        Expected env vars for single user:
+        Required environment variables:
         - AUTH_USERNAME: Username for login
         - AUTH_NAME: Display name
         - AUTH_EMAIL: User email
         - AUTH_PASSWORD: Bcrypt hashed password
-        - AUTH_COOKIE_NAME: Cookie name (optional)
-        - AUTH_COOKIE_KEY: Cookie key (optional)  
-        - AUTH_COOKIE_EXPIRY: Cookie expiry days (optional)
+        
+        Optional environment variables:
+        - AUTH_COOKIE_NAME: Cookie name
+        - AUTH_COOKIE_KEY: Cookie key  
+        - AUTH_COOKIE_EXPIRY: Cookie expiry days
         
         Returns:
             Dict containing the configuration.
             
         Raises:
-            ConfigurationError: If the configuration is missing or invalid.
+            ConfigurationError: If required environment variables are missing.
         """
-        # Try to load from environment variables first
         config = self._load_from_env()
-        if config:
-            self._validate_config(config)
-            self.config = config
-            return config
+        if not config:
+            raise ConfigurationError(
+                "Required environment variables not found. Please set: "
+                "AUTH_USERNAME, AUTH_NAME, AUTH_EMAIL, AUTH_PASSWORD"
+            )
         
-        # Fall back to YAML file
-        try:
-            if not os.path.exists(self.config_path):
-                raise ConfigurationError(f"Configuration file not found: {self.config_path}")
-            
-            with open(self.config_path, 'r') as file:
-                config = yaml.safe_load(file)
-                
-            self._validate_config(config)
-            self.config = config
-            return config
-        except yaml.YAMLError as e:
-            raise ConfigurationError(f"Invalid YAML format in {self.config_path}: {str(e)}")
-        except Exception as e:
-            raise ConfigurationError(f"Error loading configuration: {str(e)}")
+        self._validate_config(config)
+        self.config = config
+        return config
     
     def _load_from_env(self) -> Optional[Dict[str, Any]]:
-        """Load configuration from Streamlit secrets or environment variables.
+        """Load configuration from environment variables only.
         
-        Follows Streamlit secrets management standard:
-        https://docs.streamlit.io/develop/concepts/connections/secrets-management
+        Required environment variables:
+        - AUTH_USERNAME: Username for login
+        - AUTH_NAME: Display name
+        - AUTH_EMAIL: User email
+        - AUTH_PASSWORD: Bcrypt hashed password
         
-        Priority order:
-        1. Streamlit secrets (.streamlit/secrets.toml)
-        2. Environment variables
-        
-        Expected secrets format in .streamlit/secrets.toml:
-        [auth]
-        username = "admin"
-        name = "Administrator"
-        email = "admin@example.com"
-        password = "$2b$12$hashed_password"
-        
-        # Optional cookie settings
-        cookie_name = "app_auth_cookie"
-        cookie_key = "secret_key"
-        cookie_expiry = 1
-        
-        Fallback environment variables:
-        - AUTH_USERNAME, AUTH_NAME, AUTH_EMAIL, AUTH_PASSWORD
+        Optional environment variables:
+        - AUTH_COOKIE_NAME: Cookie name
+        - AUTH_COOKIE_KEY: Cookie key
+        - AUTH_COOKIE_EXPIRY: Cookie expiry days
         
         Returns:
             Dict containing the configuration or None if not available.
         """
-        import streamlit as st
-        
-        # Try Streamlit secrets first (recommended approach)
-        try:
-            # Check if auth section exists in secrets
-            if "auth" in st.secrets:
-                auth_secrets = st.secrets["auth"]
-                
-                # Get required auth fields
-                auth_username = auth_secrets.get("username")
-                auth_name = auth_secrets.get("name")
-                auth_email = auth_secrets.get("email")
-                auth_password = auth_secrets.get("password")
-                
-                # All required secrets must be present
-                if not all([auth_username, auth_name, auth_email, auth_password]):
-                    # Some required secrets missing, fall back to env vars
-                    pass
-                else:
-                    # All required secrets are available
-                    config = {
-                        'credentials': {
-                            'usernames': {
-                                auth_username: {
-                                    'name': auth_name,
-                                    'email': auth_email,
-                                    'password': auth_password
-                                }
-                            }
-                        }
-                    }
-                    
-                    # Add optional cookie configuration from secrets
-                    cookie_name = auth_secrets.get("cookie_name")
-                    cookie_key = auth_secrets.get("cookie_key")
-                    cookie_expiry = auth_secrets.get("cookie_expiry")
-                    
-                    if cookie_name and cookie_key and cookie_expiry:
-                        try:
-                            config['cookie'] = {
-                                'name': cookie_name,
-                                'key': cookie_key,
-                                'expiry_days': int(cookie_expiry)
-                            }
-                        except ValueError:
-                            # Invalid cookie_expiry, skip cookie config
-                            pass
-                    
-                    return config
-            
-        except Exception:
-            # Error accessing secrets, fall back to environment variables
-            pass
-        
-        # Fallback to environment variables
+        # Get required environment variables
         auth_username = os.getenv('AUTH_USERNAME')
         auth_name = os.getenv('AUTH_NAME')
         auth_email = os.getenv('AUTH_EMAIL')
@@ -307,30 +225,3 @@ class ConfigManager:
             name=cookie_data['name']
         )
     
-    def create_default_config(self) -> None:
-        """Create a default configuration file if it doesn't exist.
-        
-        This creates a template configuration file with instructions.
-        """
-        if os.path.exists(self.config_path):
-            return
-        
-        default_config = {
-            'credentials': {
-                'usernames': {
-                    'admin': {
-                        'name': 'Administrator',
-                        'email': 'admin@example.com',
-                        'password': '$2b$12$rAp7.pP33jWnWEJVhXuvY.jqvCHnDgX1KFrOHMQQ.xIm4cEMjEiri'  # 'password'
-                    }
-                }
-            },
-            'cookie': {
-                'expiry_days': 30,
-                'key': 'some_random_signature_key',
-                'name': 'kitchen_intel_auth_cookie'
-            }
-        }
-        
-        with open(self.config_path, 'w') as file:
-            yaml.dump(default_config, file, default_flow_style=False)

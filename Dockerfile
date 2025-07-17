@@ -10,7 +10,7 @@ ENV PORT=8080
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip install streamlit>=1.28.0 requests>=2.31.0 python-dotenv>=1.0.0 streamlit-authenticator>=0.2.3 PyYAML>=6.0 bcrypt>=4.0.1
+RUN pip install streamlit>=1.28.0 requests>=2.31.0 python-dotenv>=1.0.0 streamlit-authenticator>=0.2.3 bcrypt>=4.0.1
 
 # Copy application code
 COPY . .

@@ -12,13 +12,9 @@ from .authentication_manager import AuthenticationManager, ConfigurationError
 class AppWrapper:
     """Application wrapper that provides authentication gate functionality."""
     
-    def __init__(self, config_path: str = "credentials.yaml"):
-        """Initialize the application wrapper.
-        
-        Args:
-            config_path: Path to the authentication configuration file.
-        """
-        self.auth_manager = AuthenticationManager(config_path)
+    def __init__(self):
+        """Initialize the application wrapper."""
+        self.auth_manager = AuthenticationManager()
         self._authenticated_app_func: Optional[Callable] = None
     
     def set_authenticated_app(self, app_func: Callable) -> None:
@@ -140,16 +136,20 @@ class AppWrapper:
             with st.expander("Administrator Information"):
                 st.markdown("""
                 **Common configuration issues:**
-                - Missing `credentials.yaml` file
-                - Invalid YAML format in configuration file
-                - Missing required configuration fields
-                - Incorrect file permissions
+                - Missing required environment variables
+                - Invalid password hash format
+                - Incorrect environment variable names
                 
-                **To resolve:**
-                1. Ensure `credentials.yaml` exists in the application root
-                2. Verify the YAML format is correct
-                3. Check that all required fields are present
-                4. Ensure the application has read access to the file
+                **Required environment variables:**
+                - AUTH_USERNAME: Username for login
+                - AUTH_NAME: Display name
+                - AUTH_EMAIL: User email
+                - AUTH_PASSWORD: Bcrypt hashed password
+                
+                **Optional environment variables:**
+                - AUTH_COOKIE_NAME: Cookie name
+                - AUTH_COOKIE_KEY: Cookie secret key
+                - AUTH_COOKIE_EXPIRY: Cookie expiry in days
                 """)
         
         except Exception as e:
@@ -159,13 +159,10 @@ class AppWrapper:
             st.info("Please try refreshing the page or contact support.")
 
 
-def create_app_wrapper(config_path: str = "credentials.yaml") -> AppWrapper:
+def create_app_wrapper() -> AppWrapper:
     """Create and return an AppWrapper instance.
     
-    Args:
-        config_path: Path to the authentication configuration file.
-        
     Returns:
         Configured AppWrapper instance.
     """
-    return AppWrapper(config_path)
+    return AppWrapper()

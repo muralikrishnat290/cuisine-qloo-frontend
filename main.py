@@ -13,7 +13,7 @@ load_dotenv('.env')
 def main():
     """Main application entry point."""
     # Create the application wrapper with authentication
-    app_wrapper = create_app_wrapper("credentials.yaml")
+    app_wrapper = create_app_wrapper()
     
     # Set the authenticated application function
     app_wrapper.set_authenticated_app(render_authenticated_app)

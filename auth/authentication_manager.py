@@ -13,14 +13,9 @@ from .config_manager import ConfigManager, AuthenticationState, ConfigurationErr
 class AuthenticationManager:
     """Core authentication manager for the Streamlit application."""
     
-    def __init__(self, config_path: str = "credentials.yaml"):
-        """Initialize the authentication manager.
-        
-        Args:
-            config_path: Path to the YAML configuration file.
-        """
-        self.config_path = config_path
-        self.config_manager = ConfigManager(config_path)
+    def __init__(self):
+        """Initialize the authentication manager."""
+        self.config_manager = ConfigManager()
         self.authenticator = None
         self._config_loaded = False
     
@@ -33,18 +28,9 @@ class AuthenticationManager:
         Raises:
             ConfigurationError: If configuration loading fails.
         """
-        try:
-            config = self.config_manager.load_config()
-            self._config_loaded = True
-            return config
-        except ConfigurationError as e:
-            # Try to create default config if file doesn't exist
-            if "not found" in str(e):
-                self.config_manager.create_default_config()
-                config = self.config_manager.load_config()
-                self._config_loaded = True
-                return config
-            raise
+        config = self.config_manager.load_config()
+        self._config_loaded = True
+        return config
     
     def initialize_authenticator(self) -> stauth.Authenticate:
         """Initialize the streamlit-authenticator instance.
@@ -59,9 +45,8 @@ class AuthenticationManager:
             self.load_config()
         
         try:
-            # Get user credentials and cookie config
+            # Get user credentials
             user_credentials = self.config_manager.get_user_credentials()
-            cookie_config = self.config_manager.get_cookie_config()
             
             # Convert user credentials to the format expected by streamlit-authenticator
             credentials = {
@@ -75,12 +60,24 @@ class AuthenticationManager:
                     'password': user_cred.hashed_password
                 }
             
+            # Try to get cookie config, use defaults if not available
+            try:
+                cookie_config = self.config_manager.get_cookie_config()
+                cookie_name = cookie_config.name
+                cookie_key = cookie_config.key
+                cookie_expiry = cookie_config.expiry_days
+            except:
+                # No cookie config - use session-only authentication
+                cookie_name = None
+                cookie_key = None
+                cookie_expiry = 0
+            
             # Initialize the authenticator
             self.authenticator = stauth.Authenticate(
                 credentials,
-                cookie_config.name,
-                cookie_config.key,
-                cookie_config.expiry_days
+                cookie_name,
+                cookie_key,
+                cookie_expiry
             )
             
             return self.authenticator
