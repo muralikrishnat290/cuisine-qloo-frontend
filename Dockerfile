@@ -24,4 +24,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8080/_stcore/health || exit 1
 
 # Run the application
-CMD ["streamlit", "run", "main.py", "--server.address", "0.0.0.0", "--server.port", "8080", "--server.headless", "true", "--server.fileWatcherType", "none"]
+CMD ["streamlit", "run", "main.py", "--server.address", "0.0.0.0", "--server.port", $PORT, "--server.headless", "true", "--server.fileWatcherType", "none", "--server.enableCORS", "false", "--server.enableXsrfProtection", "false"]
