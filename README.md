@@ -1,10 +1,10 @@
 # 🍽️ Kitchen Intel Frontend App
 
-A secure Streamlit frontend application that provides an intuitive interface for AI-powered restaurant business intelligence, helping prospective restaurant owners and food truck entrepreneurs make data-driven decisions through a user-friendly web interface.
+A Streamlit frontend application for AI-powered restaurant business intelligence, designed for prospective restaurant owners and food truck entrepreneurs.
 
 ## 🔗 Backend Application
 
-This frontend pairs with our powerful AI-driven backend platform available at: [Kitchen Intel Backend](https://github.com/muralikrishnat290/cuisine-qloo)
+This frontend pairs with the backend platform available at: [Kitchen Intel Backend](https://github.com/muralikrishnat290/cuisine-qloo)
 
 ## ⚠️ Prototype Notice
 
@@ -19,7 +19,7 @@ For production deployment, additional infrastructure including proper user manag
 
 ## 🌟 Overview
 
-Kitchen Intel Frontend is a Streamlit-based web application that serves as the user interface for comprehensive restaurant business intelligence. By connecting to our AI-powered backend that leverages **Qloo's advanced AI technology**, users can analyze cuisine trends, get location recommendations, and develop marketing strategies through an intuitive, secure web interface powered by **Qloo Taste AI** and **Qloo Insights AI**.
+Kitchen Intel Frontend is a Streamlit web application that connects to an AI-powered backend using **Qloo's AI technology**. Users can analyze cuisine trends, get location recommendations, and develop marketing strategies through the web interface powered by **Qloo Taste AI** and **Qloo Insights AI**.
 
 ## 📋 Table of Contents
 
@@ -32,7 +32,7 @@ Kitchen Intel Frontend is a Streamlit-based web application that serves as the u
 
 ## 🏗️ Architecture Overview
 
-The frontend connects to a sophisticated backend system powered by multiple AI agents:
+The frontend connects to a backend system with multiple AI agents:
 
 ```mermaid
 graph TB
@@ -101,19 +101,19 @@ graph TB
     style L fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#e65100,font-weight:500
 ```
 
-### 🎯 Qloo AI Integration Highlights
+### 🎯 Qloo AI Integration
 
-The architecture showcases **Qloo's AI technology** as the intelligence backbone of Kitchen Intel:
+The architecture uses **Qloo's AI technology**:
 
-- **🏪 Qloo Taste AI**: Powers the Restaurant Analytics Engine, providing deep insights into food trends, dish popularity, and cuisine preferences with unmatched accuracy
-- **🗺️ Qloo Insights AI**: Drives the Location Heatmap Generator, analyzing geographic data and location affinity patterns for optimal restaurant placement  
-- **👥 Qloo AI**: Fuels the Demographics Intelligence tool, delivering sophisticated audience analysis and targeted marketing strategies
+- **🏪 Qloo Taste AI**: Powers the Restaurant Analytics Engine for food trends, dish popularity, and cuisine preferences
+- **🗺️ Qloo Insights AI**: Drives the Location Heatmap Generator for geographic data and location analysis
+- **👥 Qloo AI**: Powers the Demographics Intelligence tool for audience analysis and marketing strategies
 
-Each AI agent leverages these **Qloo-powered tools** to transform raw data into actionable business intelligence, making Kitchen Intel the most comprehensive restaurant planning platform available.
+Each AI agent uses these **Qloo-powered tools** to provide restaurant business intelligence.
 
 ## 🔄 Workflow Process
 
-The application follows a sophisticated 4-step workflow that processes user queries through specialized AI agents:
+The application follows a 4-step workflow that processes user queries through AI agents:
 
 ```mermaid
 sequenceDiagram
