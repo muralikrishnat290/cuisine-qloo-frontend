@@ -12,6 +12,9 @@ import time
 import json
 
 load_dotenv()
+# Configuration
+api_url = os.getenv("API_URL", "http://localhost:8080")
+api_key = os.getenv("API_KEY", "sample-key")
 
 
 def extract_text_from_response(result):
@@ -71,6 +74,12 @@ def display_response(placeholder, content, display_format, title,
         placeholder.text_area(f"📥 {title}:", value=content, height=300,
                               disabled=True)
 
+def render_map(map_details):
+    print(map_details)
+    map_object = json.loads(map_details)
+    print(map_details)
+    insight_results = map_object["insights"]
+    print(insight_results)
 
 def render_authenticated_app():
     """Render the main Kitchen Intel application for authenticated users."""
@@ -97,9 +106,6 @@ def render_authenticated_app():
             auto_scroll = st.checkbox("Auto-scroll", value=True)
             preserve_formatting = st.checkbox("Preserve formatting", value=True)
 
-    # Configuration
-    api_url = os.getenv("API_URL", "http://localhost:8080")
-    api_key = os.getenv("API_KEY", "sample-key")
 
     # Text input with larger font size
     with st.container():
@@ -119,7 +125,16 @@ def render_authenticated_app():
     if st.button("Start Analysis Workflow", type="primary"):
         if user_text:
             # Prepare payload
-            payload = {"query": user_text}
+            start_payload = {"query": user_text}
+            start_response = requests.post(
+                    f"{api_url}/start",
+                    json=start_payload,
+                    headers={
+                        "Content-Type": "application/json",
+                        "x-api-key": api_key
+                    }
+                )
+            
 
             # Create placeholder for streaming text
             response_placeholder = st.empty()
@@ -131,7 +146,7 @@ def render_authenticated_app():
                 # Make POST request to /stream endpoint
                 response = requests.post(
                     f"{api_url}/stream",
-                    json=payload,
+                    json=json.loads(start_response.content.decode('utf-8')),
                     headers={
                         "Content-Type": "application/json",
                         "x-api-key": api_key
@@ -183,6 +198,19 @@ def render_authenticated_app():
                                          preserve_formatting)
 
                     status_placeholder.success("✅ Complete!")
+
+                    task_id = json.loads(start_response.content.decode("utf-8"))["task_id"]
+                    # Get memory results
+                    end_response = requests.get(
+                        f"{api_url}/tasks/{task_id}",
+                        headers={
+                            "Content-Type": "application/json",
+                            "x-api-key": api_key
+                        }
+                    )
+                    print(end_response.content)
+                    render_map(end_response.content.decode('utf-8'))
+
 
                 else:
                     status_placeholder.error(
