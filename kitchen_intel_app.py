@@ -10,11 +10,93 @@ import requests
 import os
 import time
 import json
+import streamlit.components.v1 as components
 
 load_dotenv()
 # Configuration
 api_url = os.getenv("API_URL", "http://localhost:8080")
 api_key = os.getenv("API_KEY", "sample-key")
+
+
+def auto_scroll_to_bottom():
+    """Inject JavaScript to auto-scroll to the bottom of the page"""
+    scroll_script = """
+    <script>
+        function scrollToBottom() {
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+        
+        // Scroll immediately
+        scrollToBottom();
+        
+        // Also scroll after a short delay to catch any dynamic content
+        setTimeout(scrollToBottom, 100);
+        setTimeout(scrollToBottom, 300);
+    </script>
+    """
+    components.html(scroll_script, height=0, width=0)
+
+
+def auto_scroll_to_element(element_id):
+    """Inject JavaScript to auto-scroll to a specific element"""
+    scroll_script = f"""
+    <script>
+        function scrollToElement() {{
+            const element = document.getElementById('{element_id}');
+            if (element) {{
+                element.scrollIntoView({{
+                    behavior: 'smooth',
+                    block: 'center'
+                }});
+            }} else {{
+                window.scrollTo({{
+                    top: document.body.scrollHeight,
+                    behavior: 'smooth'
+                }});
+            }}
+        }}
+        
+        // Scroll immediately
+        scrollToElement();
+        
+        // Also scroll after a short delay to catch any dynamic content
+        setTimeout(scrollToElement, 100);
+        setTimeout(scrollToElement, 300);
+    </script>
+    """
+    components.html(scroll_script, height=0, width=0)
+
+
+def reduce_map_spacing():
+    """Inject CSS to reduce spacing around map components"""
+    css_script = """
+    <style>
+        /* Reduce spacing around Streamlit map components */
+        .stMap > div {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Reduce spacing around folium maps */
+        iframe[title*="map"] {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Reduce spacing around buttons after maps */
+        .stButton > button {
+            margin-top: 0.5rem !important;
+        }
+        
+        /* Reduce overall container spacing */
+        .stContainer > div {
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+        }
+    </style>
+    """
+    components.html(css_script, height=0, width=0)
 
 
 def extract_text_from_response(result):
@@ -313,7 +395,7 @@ def _render_map_with_data(location_data, conversion_errors):
             
             # Display summary information
             if map_result.get("status") == "success":
-                _display_map_success_metrics(location_data, filtered_data)
+                print("Successfully rendered map")
             elif map_result.get("error"):
                 st.error(f"Map component error: {map_result['error']}")
                 _show_map_fallback_options(location_data)
@@ -327,18 +409,6 @@ def _render_map_with_data(location_data, conversion_errors):
         _show_map_fallback_options(location_data)
 
 
-def _display_map_success_metrics(location_data, filtered_data):
-    """Display success metrics for rendered map."""
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric("Total Locations", len(location_data))
-    with col2:
-        st.metric("Displayed", len(filtered_data))
-    with col3:
-        if filtered_data:
-            avg_affinity = sum(item.get('affinity', 0) for item in filtered_data) / len(filtered_data)
-            st.metric("Avg Affinity", f"{avg_affinity:.1%}")
 
 
 def _show_map_fallback_options(location_data):
@@ -537,6 +607,9 @@ def render_simple_map(map_details):
         # Display map with traditional location markers using Folium
         st.subheader("📍 Location Analysis Map")
         
+        # Apply CSS to reduce spacing around map components
+        reduce_map_spacing()
+        
         try:
             import folium
             from streamlit_folium import st_folium
@@ -608,8 +681,8 @@ def render_simple_map(map_details):
                     )
                 ).add_to(m)
             
-            # Display the map
-            st_folium(m, width=700, height=500)
+            # Display the map with maximum width
+            st_folium(m, width=None, height=500)  # Reduced height from 600 to 500
             
         except ImportError:
             st.warning("⚠️ Folium not available. Using fallback map with dot markers.")
@@ -638,19 +711,7 @@ def render_simple_map(map_details):
                 })
             
             map_df = pd.DataFrame(map_data)
-            st.map(map_df, size='size', color='color')
-        
-        # Display summary metrics only
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric("Total Locations", len(location_data))
-        with col2:
-            avg_affinity = sum(item['affinity'] for item in location_data) / len(location_data)
-            st.metric("Avg Affinity", f"{avg_affinity:.1%}")
-        with col3:
-            avg_popularity = sum(item['popularity'] for item in location_data) / len(location_data)
-            st.metric("Avg Popularity", f"{avg_popularity:.1%}")
+            st.map(map_df, size='size', color='color', height=400)  # Set specific height for fallback map
         
     except Exception as e:
         st.error(f"❌ Error rendering simple map: {str(e)}")
@@ -669,6 +730,13 @@ def render_authenticated_app():
     
     # Title
     st.title("🍜 Kitchen Intel")
+    
+    # App description
+    st.markdown("""
+    **Analyze food & cuisine business performance with AI-powered insights**
+    
+    Get comprehensive analysis of restaurant and food business performance, market trends, and location-based insights for any cuisine type in any city. This tool leverages advanced language models to provide sales analysis, demographic insights, and interactive location mapping for food businesses.
+    """)
 
     # App description and display options
     col1, col2 = st.columns([4, 1])
@@ -688,135 +756,269 @@ def render_authenticated_app():
             auto_scroll = st.checkbox("Auto-scroll", value=True)
             preserve_formatting = st.checkbox("Preserve formatting", value=True)
 
-
-    # Text input with larger font size
+    # Separate inputs for cuisine and city
     with st.container():
-        st.markdown("""
-        <div style="background-color: #f0f0f0; padding: 15px; border-radius: 10px; margin-bottom: 10px;">
-            <h4 style="margin: 0; color: #333;">To start analysis, type "how pizza 🍕 performs in Stuttgart":</h4>
-        </div>
-        """, unsafe_allow_html=True)
-    user_text = st.text_area("Query input", height=150, placeholder="Type your message here...", label_visibility="hidden")
+        col1, col2 = st.columns(2)
+        with col1:
+            cuisine_input = st.text_input("🍽️ Cuisine Type", placeholder="e.g., chinese, italian...", help="Enter the type of cuisine you want to analyze")
+        with col2:
+            city_input = st.text_input("🏙️ City", placeholder="e.g., Stuttgart, Delhi, New York...", help="Enter the city for the analysis")
 
     # Disclaimer
     st.markdown("""
     ⚠️ **Disclaimer:** This tool uses Large Language Models (LLMs) which may occasionally produce inaccurate information. Please verify and double-check all results before making business decisions.
     """)
 
-    # Create containers outside the button block so they're always available
+    # Button area - positioned immediately after inputs and before any output
+    button_col1, button_col2 = st.columns(2)
+    
+    # Check if we have existing results to show both buttons
+    has_existing_results = (st.session_state.get('final_response') and 
+                           st.session_state.get('response_format') and 
+                           not st.session_state.get('analysis_in_progress', False))
+    
+    with button_col1:
+        start_analysis_clicked = st.button("Start Analysis Workflow", type="primary", key="start_analysis_btn", use_container_width=True)
+    
+    with button_col2:
+        if has_existing_results:
+            start_new_clicked = st.button("🔄 Start New Analysis", type="secondary", key="start_new_analysis_btn", use_container_width=True)
+        else:
+            start_new_clicked = False
+
+    # Create containers for organized layout - MUST be created before button logic
     streaming_container = st.container()
     map_container = st.container()
+
+    # Handle button clicks
+    if start_analysis_clicked or start_new_clicked:
+        # If it's a new analysis request, clear all data first
+        if start_new_clicked:
+            keys_to_clear = [
+                'pending_map_task_id', 'show_map_button', 'map_data', 'show_map', 
+                'current_query', 'analysis_complete', 'analysis_in_progress',
+                'final_response', 'response_format', 'preserve_formatting'
+            ]
+            for key in keys_to_clear:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.rerun()
+        
+        # Validate inputs for new analysis
+        if not cuisine_input.strip():
+            with streaming_container:
+                st.error("🍽️ Please enter a cuisine type")
+            st.stop()
+        if not city_input.strip():
+            with streaming_container:
+                st.error("🏙️ Please enter a city name")
+            st.stop()
+            
+        # Clear ALL previous analysis data
+        keys_to_clear = [
+            'pending_map_task_id', 'show_map_button', 'map_data', 'show_map', 
+            'current_query', 'analysis_complete', 'analysis_in_progress',
+            'final_response', 'response_format', 'preserve_formatting'
+        ]
+        for key in keys_to_clear:
+            if key in st.session_state:
+                del st.session_state[key]
+        
+        # Combine inputs into query format
+        combined_query = f"how {cuisine_input.strip()} performs in {city_input.strip()}"
+        
+        # Store current query to track state
+        st.session_state['current_query'] = combined_query
+        st.session_state['analysis_in_progress'] = True
+        
+        # Prepare payload
+        start_payload = {"query": combined_query}
+        
+        try:
+            start_response = requests.post(
+                f"{api_url}/start",
+                json=start_payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "x-api-key": api_key
+                }
+            )
+            
+            with streaming_container:
+                # Initialize streaming content area
+                display_format = "Auto-detect"
+                
+                # Create status area and response area in proper order
+                status_info = st.info("🔄 Sending request...")
+                response_placeholder = st.empty()
+
+                try:
+                    # Make POST request to /stream endpoint
+                    response = requests.post(
+                        f"{api_url}/stream",
+                        json=json.loads(start_response.content.decode('utf-8')),
+                        headers={
+                            "Content-Type": "application/json",
+                            "x-api-key": api_key
+                        },
+                        stream=True,
+                        timeout=240
+                    )
+         
+                    if response.status_code == 200:
+                        # Update status without clearing previous content
+                        status_info.success("✅ Connected! Receiving response...")
+                        
+                        full_response = ""
+
+                        # Check if response is streaming (chunked)
+                        if response.headers.get('transfer-encoding') == 'chunked':
+                            for chunk in response.iter_content(chunk_size=1024,
+                                                               decode_unicode=True):
+                                if chunk:
+                                    full_response += chunk
+                                    display_response(response_placeholder,
+                                                     full_response, display_format,
+                                                     "Streaming Response",
+                                                     preserve_formatting)
+                                    if auto_scroll:
+                                        time.sleep(0.05)  # Small delay for visual effect
+                                        auto_scroll_to_bottom()  # Auto-scroll to latest content
+                        else:
+                            # Handle regular response
+                            try:
+                                # Try to parse as JSON first
+                                result = response.json()
+                                full_response = extract_text_from_response(result)
+                            except:
+                                # If not JSON, treat as plain text
+                                full_response = response.text
+
+                            display_response(response_placeholder, full_response,
+                                             display_format, "Response",
+                                             preserve_formatting)
+                            
+                            if auto_scroll:
+                                auto_scroll_to_bottom()  # Auto-scroll to show response
+
+                        # Store the final response and add completion status
+                        st.session_state['final_response'] = full_response
+                        st.session_state['response_format'] = display_format
+                        st.session_state['preserve_formatting'] = preserve_formatting
+                        
+                        # Analysis completed - update status
+                        status_info.success("✅ Analysis completed!")
+                        
+                        task_id = json.loads(start_response.content.decode("utf-8"))["task_id"]
+                        
+                        # Auto-generate map in separate container
+                        with map_container:
+                            st.divider()
+                            map_status = st.info("🗺️ Generating location map...")
+                        
+                            try:
+                                # Get the task results immediately
+                                end_response = requests.get(
+                                    f"{api_url}/tasks/{task_id}",
+                                    headers={
+                                        "Content-Type": "application/json",
+                                        "x-api-key": api_key
+                                    }
+                                )
+                                
+                                if end_response.status_code == 200:
+                                    # Store map data and render immediately
+                                    map_data = end_response.content.decode('utf-8')
+                                    st.session_state['map_data'] = map_data
+                                    st.session_state['show_map'] = True
+                                    st.session_state['analysis_in_progress'] = False
+                                    st.session_state['analysis_complete'] = True
+                                    
+                                    map_status.success("✅ Map generated successfully!")
+                                    render_simple_map(map_data)
+                                    
+                                    # Auto-scroll to show the map
+                                    if auto_scroll:
+                                        auto_scroll_to_bottom()
+                                    
+                                    # Option to hide the map - minimal spacing
+                                    col1, col2, col3 = st.columns([2, 1, 2])
+                                    with col2:
+                                        if st.button("🗺️ Hide Map", use_container_width=True, key="hide_map_btn"):
+                                            st.session_state['show_map'] = False
+                                            st.rerun()
+                                    
+                                else:
+                                    map_status.error(f"❌ Failed to fetch map data: {end_response.status_code}")
+                                    
+                            except Exception as map_error:
+                                map_status.error(f"❌ Failed to generate map: {str(map_error)}")
+
+                    else:
+                        st.error(f"❌ Error {response.status_code}: {response.text}")
+
+                except requests.exceptions.ConnectionError:
+                    st.error("❌ Could not connect to API. Check if server is running.")
+                except requests.exceptions.Timeout:
+                    st.error("❌ Request timed out.")
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
+                    
+        except Exception as outer_error:
+            with streaming_container:
+                st.error(f"❌ Failed to start analysis: {str(outer_error)}")
     
     # Display any existing streaming content from previous analysis
-    if st.session_state.get('final_response') and st.session_state.get('response_format'):
+    if (st.session_state.get('final_response') and 
+        st.session_state.get('response_format') and 
+        not st.session_state.get('analysis_in_progress', False) and
+        not start_analysis_clicked and not start_new_clicked):
+        
         with streaming_container:
             # Display the stored response
             response_placeholder = st.empty()
             display_response(response_placeholder, st.session_state['final_response'],
                            st.session_state['response_format'], "Analysis Results",
                            st.session_state.get('preserve_formatting', True))
-    
-    # Submit button
-    if st.button("Start Analysis Workflow", type="primary"):
-        if user_text:
-            # Clear previous analysis data but preserve authentication
-            keys_to_clear = ['pending_map_task_id', 'show_map_button', 'map_data', 'show_map', 'current_query', 'analysis_complete']
-            for key in keys_to_clear:
-                if key in st.session_state:
-                    del st.session_state[key]
             
-            # Store current query to track state
-            st.session_state['current_query'] = user_text
-            st.session_state['analysis_in_progress'] = True
+            # Auto-scroll to show existing results when page loads
+            if auto_scroll:
+                auto_scroll_to_bottom()
+        
+        # Display map only if it's been generated and is set to show
+        if (st.session_state.get('show_map', False) and 
+            st.session_state.get('map_data') and 
+            st.session_state.get('analysis_complete', False)):
             
-            # Prepare payload
-            start_payload = {"query": user_text}
-            
-            start_response = requests.post(
-                    f"{api_url}/start",
-                    json=start_payload,
-                    headers={
-                        "Content-Type": "application/json",
-                        "x-api-key": api_key
-                    }
-                )
-            
-            # Initialize streaming content area
-            with streaming_container:
-                display_format = "Auto-detect"  # Set default format without dropdown
+            with map_container:
+                st.divider()
+                render_simple_map(st.session_state['map_data'])
                 
-                # Create status area and response area separately
-                status_info = st.info("🔄 Sending request...")
-                response_container = st.container()
-
-            try:
-                # Make POST request to /stream endpoint
-                response = requests.post(
-                    f"{api_url}/stream",
-                    json=json.loads(start_response.content.decode('utf-8')),
-                    headers={
-                        "Content-Type": "application/json",
-                        "x-api-key": api_key
-                    },
-                    stream=True,
-                    timeout=240
-                )
-     
-                if response.status_code == 200:
-                    # Update status without clearing previous content
-                    status_info.empty()
-                    with streaming_container:
-                        st.success("✅ Connected! Receiving response...")
-
-                    # Handle streaming response in dedicated container
-                    with response_container:
-                        response_placeholder = st.empty()
-                    
-                    full_response = ""
-
-                    # Check if response is streaming (chunked)
-                    if response.headers.get('transfer-encoding') == 'chunked':
-                        for chunk in response.iter_content(chunk_size=1024,
-                                                           decode_unicode=True):
-                            if chunk:
-                                full_response += chunk
-                                display_response(response_placeholder,
-                                                 full_response, display_format,
-                                                 "Streaming Response",
-                                                 preserve_formatting)
-                                if auto_scroll:
-                                    time.sleep(0.05)  # Small delay for visual effect
-                    else:
-                        # Handle regular response
-                        try:
-                            # Try to parse as JSON first
-                            result = response.json()
-                            full_response = extract_text_from_response(result)
-                        except:
-                            # If not JSON, treat as plain text
-                            full_response = response.text
-
-                        display_response(response_placeholder, full_response,
-                                         display_format, "Response",
-                                         preserve_formatting)
-
-                    # Store the final response and add completion status
-                    st.session_state['final_response'] = full_response
-                    st.session_state['response_format'] = display_format
-                    st.session_state['preserve_formatting'] = preserve_formatting
-                    
-                    # Analysis completed - no status message needed
-                    
-                    task_id = json.loads(start_response.content.decode("utf-8"))["task_id"]
-                    
-                    # Auto-generate map in separate container
-                    with map_container:
-                        st.divider()
-                        map_status = st.empty()
-                        map_status.info("🗺️ Generating location map...")
-                    
+                # Auto-scroll to show the map for existing results
+                if auto_scroll:
+                    auto_scroll_to_bottom()
+                
+                # Option to hide the map - minimal spacing
+                col1, col2, col3 = st.columns([2, 1, 2])
+                with col2:
+                    if st.button("🗺️ Hide Map", use_container_width=True, key="hide_map_existing_btn"):
+                        st.session_state['show_map'] = False
+                        st.rerun()
+    
+    # Show map rendering button if there's a pending task (only when not running new analysis)
+    if (st.session_state.get('show_map_button', False) and 
+        st.session_state.get('pending_map_task_id') and
+        not start_analysis_clicked and not start_new_clicked):
+        
+        with map_container:
+            st.divider()
+            
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                if st.button("🗺️ Generate Location Map", type="secondary", use_container_width=True):
                     try:
-                        # Get the task results immediately
+                        # Get the task results
+                        task_id = st.session_state['pending_map_task_id']
                         end_response = requests.get(
                             f"{api_url}/tasks/{task_id}",
                             headers={
@@ -826,93 +1028,37 @@ def render_authenticated_app():
                         )
                         
                         if end_response.status_code == 200:
-                            # Store map data and render immediately
-                            map_data = end_response.content.decode('utf-8')
-                            st.session_state['map_data'] = map_data
+                            # Store map data in session state and render map immediately
+                            st.session_state['map_data'] = end_response.content.decode('utf-8')
                             st.session_state['show_map'] = True
-                            st.session_state['analysis_in_progress'] = False
-                            st.session_state['analysis_complete'] = True
+                            st.session_state['show_map_button'] = False
+                            st.session_state['pending_map_task_id'] = None
                             
-                            map_status.success("✅ Map generated successfully!")
+                            # Render map immediately without page refresh
+                            st.divider()
+                            render_simple_map(st.session_state['map_data'])
+                            
+                            # Auto-scroll to show the manually generated map
+                            if auto_scroll:
+                                auto_scroll_to_bottom()
+                            
+                            # Add hide map button for manually generated map - minimal spacing
+                            hide_col1, hide_col2, hide_col3 = st.columns([2, 1, 2])
+                            with hide_col2:
+                                if st.button("🗺️ Hide Map", use_container_width=True, key="hide_manual_map_btn"):
+                                    st.session_state['show_map'] = False
+                                    st.rerun()
                             
                         else:
-                            map_status.error(f"❌ Failed to fetch map data: {end_response.status_code}")
+                            st.error(f"❌ Failed to fetch task results: {end_response.status_code}")
                             
                     except Exception as map_error:
-                        map_status.error(f"❌ Failed to generate map: {str(map_error)}")
-
-                else:
-                    with streaming_container:
-                        st.error(f"❌ Error {response.status_code}: {response.text}")
-
-            except requests.exceptions.ConnectionError:
-                with streaming_container:
-                    st.error("❌ Could not connect to API. Check if server is running.")
-            except requests.exceptions.Timeout:
-                with streaming_container:
-                    st.error("❌ Request timed out.")
-            except Exception as e:
-                with streaming_container:
-                    st.error(f"❌ Error: {str(e)}")
-        else:
-            st.warning("⚠️ Please enter text first.")
-    
-    # Display map only if it's been generated for the current session and analysis is complete
-    if (st.session_state.get('show_map', False) and 
-        st.session_state.get('map_data') and 
-        st.session_state.get('analysis_complete', False) and
-        not st.session_state.get('analysis_in_progress', False)):
-        
-        with map_container:
-            render_simple_map(st.session_state['map_data'])
+                        st.error(f"❌ Failed to render map: {str(map_error)}")
             
-            # Option to hide the map - moved inside map_container to keep it grouped
+            # Option to dismiss the map button
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
-                if st.button("🗺️ Hide Map", use_container_width=True):
-                    st.session_state['show_map'] = False
-                    st.rerun()
-    # Show map rendering button if there's a pending task
-    if st.session_state.get('show_map_button', False) and st.session_state.get('pending_map_task_id'):
-        st.divider()
-        
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button("🗺️ Generate Location Map", type="secondary", use_container_width=True):
-                try:
-                    # Get the task results
-                    task_id = st.session_state['pending_map_task_id']
-                    end_response = requests.get(
-                        f"{api_url}/tasks/{task_id}",
-                        headers={
-                            "Content-Type": "application/json",
-                            "x-api-key": api_key
-                        }
-                    )
-                    
-                    if end_response.status_code == 200:
-                        # Store map data in session state and render map immediately
-                        st.session_state['map_data'] = end_response.content.decode('utf-8')
-                        st.session_state['show_map'] = True
-                        st.session_state['show_map_button'] = False
-                        st.session_state['pending_map_task_id'] = None
-                        
-                        # Render map immediately without page refresh
-                        st.divider()
-                        st.subheader("🗺️ Location Analysis Map")
-                        render_simple_map(st.session_state['map_data'])
-                        
-                    else:
-                        st.error(f"❌ Failed to fetch task results: {end_response.status_code}")
-                        
-                except Exception as map_error:
-                    st.error(f"❌ Failed to render map: {str(map_error)}")
-        
-        # Option to dismiss the map button
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button("❌ Skip Map Generation", use_container_width=True):
-                st.session_state['show_map_button'] = False
-                st.session_state['pending_map_task_id'] = None
-                st.info("Map generation skipped. You can run a new analysis to get another opportunity to generate a map.")
-    
+                if st.button("❌ Skip Map Generation", use_container_width=True):
+                    st.session_state['show_map_button'] = False
+                    st.session_state['pending_map_task_id'] = None
+                    st.info("Map generation skipped. You can run a new analysis to get another opportunity to generate a map.")
