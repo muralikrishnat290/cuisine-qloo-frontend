@@ -21,7 +21,7 @@ from components.ui_components import (
 )
 from components.response_handler import display_response, extract_text_from_response
 from components.comprehensive_map_renderer import render_map, render_lightweight_map
-from styles.scroll.autoscroll import auto_scroll_to_bottom, auto_scroll_to_element
+from styles.scroll.autoscroll import add_scroll_to_bottom_button
 
 load_dotenv()
 
@@ -46,6 +46,8 @@ def render_authenticated_app():
     render_app_header()
     render_mvp_notice()
     
+    # Render floating scroll button (non-interfering)
+    add_scroll_to_bottom_button()
     # Render sidebar settings
     settings = render_sidebar_settings()
     auto_scroll = settings['auto_scroll']
@@ -142,8 +144,6 @@ def render_authenticated_app():
                     )
          
                     if response.status_code == 200:
-                        # Update status without clearing previous content
-                        status_info.success("✅ Connected! Receiving response...")
                         
                         full_response = ""
 
@@ -157,9 +157,6 @@ def render_authenticated_app():
                                                      full_response, display_format,
                                                      "Streaming Response",
                                                      preserve_formatting)
-                                    if auto_scroll:
-                                        time.sleep(0.05)  # Small delay for visual effect
-                                        auto_scroll_to_bottom()  # Auto-scroll to latest content
                         else:
                             # Handle regular response
                             try:
@@ -173,17 +170,12 @@ def render_authenticated_app():
                             display_response(response_placeholder, full_response,
                                              display_format, "Response",
                                              preserve_formatting)
-                            
-                            if auto_scroll:
-                                auto_scroll_to_bottom()  # Auto-scroll to show response
 
                         # Store the final response and add completion status
                         st.session_state['final_response'] = full_response
                         st.session_state['response_format'] = display_format
                         st.session_state['preserve_formatting'] = preserve_formatting
-                        
-                        # Analysis completed - update status
-                        status_info.success("✅ Analysis completed!")
+
                         
                         task_id = json.loads(start_response.content.decode("utf-8"))["task_id"]
                         
@@ -209,13 +201,8 @@ def render_authenticated_app():
                                     st.session_state['show_map'] = True
                                     st.session_state['analysis_in_progress'] = False
                                     st.session_state['analysis_complete'] = True
-                                    
-                                    map_status.success("✅ Map generated successfully!")
+
                                     render_lightweight_map(map_data)
-                                    
-                                    # Auto-scroll to show the map
-                                    if auto_scroll:
-                                        auto_scroll_to_bottom()
                                     
                                     # Option to hide the map - minimal spacing
                                     col1, col2, col3 = st.columns([2, 1, 2])
@@ -257,9 +244,6 @@ def render_authenticated_app():
                            st.session_state['response_format'], "Analysis Results",
                            st.session_state.get('preserve_formatting', True))
             
-            # Auto-scroll to show existing results when page loads
-            if auto_scroll:
-                auto_scroll_to_bottom()
         
         # Display map only if it's been generated and is set to show
         if (st.session_state.get('show_map', False) and 
@@ -269,10 +253,7 @@ def render_authenticated_app():
             with map_container:
                 st.divider()
                 render_lightweight_map(st.session_state['map_data'])
-                
-                # Auto-scroll to show the map for existing results
-                if auto_scroll:
-                    auto_scroll_to_bottom()
+
                 
                 # Option to hide the map - minimal spacing
                 col1, col2, col3 = st.columns([2, 1, 2])
@@ -314,9 +295,6 @@ def render_authenticated_app():
                             st.divider()
                             render_lightweight_map(st.session_state['map_data'])
                             
-                            # Auto-scroll to show the manually generated map
-                            if auto_scroll:
-                                auto_scroll_to_bottom()
                             
                             # Add hide map button for manually generated map - minimal spacing
                             hide_col1, hide_col2, hide_col3 = st.columns([2, 1, 2])

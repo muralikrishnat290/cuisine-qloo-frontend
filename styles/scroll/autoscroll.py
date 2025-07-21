@@ -1,52 +1,62 @@
-import streamlit.components.v1 as components
+import streamlit as st
 
-def auto_scroll_to_bottom():
-    """Inject JavaScript to auto-scroll to the bottom of the page"""
-    scroll_script = """
+def add_scroll_to_bottom_button():
+    """Add a floating button that scrolls to the bottom of the page"""
+    
+    # CSS for the floating button
+    button_css = """
+    <style>
+    .scroll-to-bottom {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: #ff6b6b;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        z-index: 1000;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .scroll-to-bottom:hover {
+        background-color: #ff5252;
+        transform: scale(1.1);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+    }
+    
+    .scroll-to-bottom:active {
+        transform: scale(0.95);
+    }
+    </style>
+    """
+    
+    # JavaScript for scroll functionality
+    scroll_js = """
     <script>
-        function scrollToBottom() {
-            window.scrollTo({
-                top: document.body.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
-        
-        // Scroll immediately
-        scrollToBottom();
-        
-        // Also scroll after a short delay to catch any dynamic content
-        setTimeout(scrollToBottom, 100);
-        setTimeout(scrollToBottom, 300);
+    function scrollToBottom() {
+        window.scrollTo({
+            top: document.body.scrollHeight,
+            behavior: 'smooth'
+        });
+    }
     </script>
     """
-    components.html(scroll_script, height=0, width=0)
-
-
-def auto_scroll_to_element(element_id):
-    """Inject JavaScript to auto-scroll to a specific element"""
-    scroll_script = f"""
-    <script>
-        function scrollToElement() {{
-            const element = document.getElementById('{element_id}');
-            if (element) {{
-                element.scrollIntoView({{
-                    behavior: 'smooth',
-                    block: 'center'
-                }});
-            }} else {{
-                window.scrollTo({{
-                    top: document.body.scrollHeight,
-                    behavior: 'smooth'
-                }});
-            }}
-        }}
-        
-        // Scroll immediately
-        scrollToElement();
-        
-        // Also scroll after a short delay to catch any dynamic content
-        setTimeout(scrollToElement, 100);
-        setTimeout(scrollToElement, 300);
-    </script>
+    
+    # HTML button
+    button_html = """
+    <button class="scroll-to-bottom" onclick="scrollToBottom()" title="Scroll to Bottom">
+        ↓
+    </button>
     """
-    components.html(scroll_script, height=0, width=0)
+    
+    # Combine and inject
+    full_html = button_css + scroll_js + button_html
+    st.components.v1.html(full_html, height=0)
