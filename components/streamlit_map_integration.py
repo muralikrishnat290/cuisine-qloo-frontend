@@ -4,10 +4,16 @@ This module handles Streamlit-specific rendering and state management for intera
 """
 
 import streamlit as st
-import folium
-from streamlit_folium import st_folium
 from typing import List, Dict, Any, Optional, Tuple
 import logging
+
+# Conditional imports for optional dependencies
+try:
+    import folium
+    from streamlit_folium import st_folium
+    FOLIUM_AVAILABLE = True
+except ImportError:
+    FOLIUM_AVAILABLE = False
 
 from .map_renderer import MapRenderer
 from .data_models import validate_location_data
@@ -82,6 +88,10 @@ def display_map_component(
                 folium_map = renderer.render_demographic_map(data)
             
             # Display the map using streamlit-folium
+            if not FOLIUM_AVAILABLE:
+                st.error("❌ streamlit-folium is required for map display")
+                return {"error": "Missing required dependency: streamlit-folium", "status": "dependency_missing"}
+            
             map_data = st_folium(
                 folium_map,
                 key=key,

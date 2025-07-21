@@ -3,10 +3,16 @@ Map rendering component for demographic data visualization.
 This module contains the MapRenderer class for creating interactive maps with Folium.
 """
 
-import folium
 from typing import List, Dict, Any, Optional, Tuple
 from .data_models import LocationData, MapConfig
 from .data_processor import calculate_center_point, calculate_map_bounds, calculate_optimal_zoom_level
+
+# Conditional import for optional dependency
+try:
+    import folium
+    FOLIUM_AVAILABLE = True
+except ImportError:
+    FOLIUM_AVAILABLE = False
 
 
 class MapRenderer:
