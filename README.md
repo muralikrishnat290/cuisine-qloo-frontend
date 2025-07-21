@@ -19,7 +19,7 @@ For production deployment, additional infrastructure including proper user manag
 
 ## 🌟 Overview
 
-Kitchen Intel Frontend is a Streamlit web application that connects to an AI-powered backend using **Qloo's AI technology**. Users can analyze cuisine trends, get location recommendations, and develop marketing strategies through the web interface powered by **Qloo Taste AI** and **Qloo Insights AI**.
+Kitchen Intel Frontend is a Streamlit web application that connects to an AI-powered backend using **Qloo**. Users can analyze cuisine trends, get location recommendations, and develop marketing strategies through the web interface powered by **Qloo Taste AI** and **Qloo Insights API**.
 
 ## 📋 Table of Contents
 
@@ -106,8 +106,8 @@ graph TB
 The architecture uses **Qloo's AI technology**:
 
 - **🏪 Qloo Taste AI**: Powers the Restaurant Analytics Engine for food trends, dish popularity, and cuisine preferences
-- **🗺️ Qloo Insights AI**: Drives the Location Heatmap Generator for geographic data and location analysis
-- **👥 Qloo AI**: Powers the Demographics Intelligence tool for audience analysis and marketing strategies
+- **🗺️ Qloo Insights API**: Drives the Location Heatmap Generator for geographic data and location analysis
+- **👥 Qloo Demographics Data**: Powers the Demographics Intelligence tool for audience analysis and marketing strategies
 
 Each AI agent uses these **Qloo-powered tools** to provide restaurant business intelligence.
 
